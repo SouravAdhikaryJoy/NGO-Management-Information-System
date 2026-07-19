@@ -34,6 +34,30 @@ def trigger_solve(
     return {"job_id": job_id, "status": "PENDING"}
 
 
+@router.get("/solve/runs")
+def list_runs(limit: int = 10, db: DbSession = Depends(get_db)):
+    """Most recent solver runs, newest first (used by the web dashboard)."""
+    runs = (
+        db.query(SolverRun)
+        .order_by(SolverRun.created_at.desc(), SolverRun.id.desc())
+        .limit(max(1, min(limit, 50)))
+        .all()
+    )
+    return {
+        "runs": [
+            {
+                "job_id": r.job_id,
+                "status": r.status,
+                "soft_penalty": r.soft_penalty,
+                "hard_violations": r.hard_violations,
+                "runtime_seconds": r.runtime_seconds,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in runs
+        ]
+    }
+
+
 @router.get("/solve/{job_id}/status", response_model=SolveStatusResponse)
 def solve_status(job_id: str, db: DbSession = Depends(get_db)):
     run = db.query(SolverRun).filter(SolverRun.job_id == job_id).one_or_none()

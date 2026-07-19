@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weekly routine — University Timetabling System</title>
+  <meta name="description" content="Browse the generated clash-free weekly class routine: master room grid per day, filters per teacher and class group, and downloads in Excel, CSV, calendar and PDF formats.">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Weekly routine — University Timetabling System">
+  <meta property="og:description" content="The generated clash-free weekly class routine, browsable by day, room, teacher and class group.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=Karla:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗓️</text></svg>">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="stamp">Routine</span>University Timetabling System</a>
+    <nav class="top" aria-label="Main">
+      <a href="/">Workbench</a>
+      <a href="/timetable" aria-current="page">Timetable</a>
+      <a href="/#guide">Guide</a>
+      <a href="/docs">API</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" style="padding-top:36px">
+  <h1 class="section-title" style="font-size:2rem">The weekly routine</h1>
+
+  <div class="toolbar" id="toolbar" hidden>
+    <label for="view-mode">View</label>
+    <select id="view-mode">
+      <option value="all">All rooms</option>
+      <option value="group">One class group</option>
+      <option value="teacher">One teacher</option>
+    </select>
+    <select id="entity-select" hidden aria-label="Choose teacher or group"></select>
+    <div class="badges">
+      <span class="badge" id="badge-feasible">✓ 0 clashes</span>
+      <span class="badge" id="badge-penalty"></span>
+      <span class="badge" id="badge-sessions"></span>
+    </div>
+  </div>
+
+  <div id="content">
+    <div class="empty-state" id="empty">
+      <h3>No solved routine yet</h3>
+      <p>Head to the <a href="/">workbench</a>, load the demo data (or your own
+      workbook) and press <em>Run the solver</em> — then come back here.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="colophon">
+  <div class="wrap">
+    <span>University Timetabling System</span>
+    <a href="/">Workbench</a>
+    <a href="/docs">API documentation</a>
+  </div>
+</footer>
+
+<script src="/static/timetable.js"></script>
+</body>
+</html>

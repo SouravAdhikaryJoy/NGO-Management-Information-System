@@ -34,6 +34,19 @@ async def import_manual_edits(file: UploadFile, db: DbSession = Depends(get_db))
         raise api_error(400, "reimport_failed", f"could not process workbook: {exc}")
 
 
+@router.post("/import/demo", response_model=ImportResponse)
+def load_demo_dataset(db: DbSession = Depends(get_db)):
+    """Load a small built-in demo dataset (2 semesters, 10 courses, 4 class
+    groups, 8 teachers) so the workflow can be tried without preparing a file."""
+    from app.excel.sample_data import write_sample_workbook
+
+    buffer = io.BytesIO()
+    write_sample_workbook(buffer)
+    buffer.seek(0)
+    result = import_workbook(db, buffer)
+    return result.as_dict()
+
+
 @router.get("/import/template")
 def download_template():
     """Download a blank import workbook with every sheet and header row."""

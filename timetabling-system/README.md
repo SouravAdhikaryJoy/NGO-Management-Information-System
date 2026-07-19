@@ -2,7 +2,28 @@
 
 Automated weekly class-routine generation for a university: Excel in, solved
 routine out, with a two-phase metaheuristic solver (feasibility, then quality)
-behind a versioned FastAPI.
+behind a versioned FastAPI — plus a built-in web UI that walks you through the
+whole workflow.
+
+## Try it in 60 seconds
+
+```bash
+pip install -r requirements.txt
+uvicorn app.main:app
+```
+
+Open **http://localhost:8000** and:
+
+1. Press **“Try it now with demo data”** — loads a built-in sample university
+   (10 courses, 8 teachers, 4 class groups). No file needed.
+2. Press **“Run the solver”** — live status updates; a demo-sized dataset
+   solves in seconds to a minute.
+3. Press **“Open timetable view”** — browse the routine by day, room, teacher
+   or class group, and download it as Excel, CSV, calendar (.ics) or PDF.
+
+For real data: download the blank Excel template from the same page, fill one
+sheet per entity, and upload it. Every row is validated first — errors are
+reported with the exact sheet, row and field, and nothing is half-imported.
 
 The full specification lives in [`timetabling_system_design.md`](timetabling_system_design.md)
 — constraints, data model, algorithm, and output spec. The implementation
@@ -34,12 +55,27 @@ follows it field-for-field.
 - **Reproducibility**: every run logs seed, iteration counts, runtime, and full
   weight/config snapshots to `solver_runs`.
 
-## Quick start
+## Web UI
+
+Served by the API itself (no separate frontend build):
+
+- **`/` — Workbench**: guided 3-step flow (get data in → solve → results) with
+  a how-it-works guide, template download, one-click demo data, live solver
+  status, recent-runs ledger, and a plain-language FAQ on hard/soft
+  constraints and manual editing.
+- **`/timetable` — Routine viewer**: master Day × Slot × Room grid with day
+  tabs, plus per-teacher and per-class-group personal week views; badges show
+  clash count (always 0 for a completed run), quality penalty, and weekly
+  class count.
+- SEO-ready: semantic HTML, meta description/OpenGraph/Twitter tags, JSON-LD
+  `SoftwareApplication` schema, `robots.txt` and `sitemap.xml`.
+
+## Quick start (Docker / API-only)
 
 ```bash
 # with Docker (Postgres + API)
 docker compose up --build
-# open http://localhost:8000/docs
+# open http://localhost:8000  (UI)  or  http://localhost:8000/docs  (API)
 
 # or locally (SQLite by default)
 pip install -r requirements.txt
@@ -47,19 +83,21 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-Then:
+API flow (everything the UI does is plain `/api/v1` calls):
 
-1. `GET /api/v1/import/template` — download the blank workbook (or generate a
-   demo dataset: `python -c "from app.excel.sample_data import write_sample_workbook; write_sample_workbook('sample.xlsx')"`)
+1. `GET /api/v1/import/template` — blank workbook, or `POST /api/v1/import/demo`
+   for the built-in sample dataset
 2. `POST /api/v1/import` — upload the filled workbook
 3. `POST /api/v1/solve` — returns a `job_id`; poll `GET /api/v1/solve/{job_id}/status`
+   (recent runs: `GET /api/v1/solve/runs`)
 4. `GET /api/v1/timetable/{job_id}` (JSON) or
    `GET /api/v1/timetable/{job_id}/export?format=xlsx|csv|ics|pdf`
 
 Other endpoints: `GET/PATCH /api/v1/config/weights`, `GET/PATCH
 /api/v1/config/system`, `GET /api/v1/teacher/{id}/schedule`,
 `GET /api/v1/group/{id}/schedule`, `PATCH /api/v1/session/{id}` (manual
-override, hard-constraint validated, optional lock/pin).
+override, hard-constraint validated, optional lock/pin), `POST
+/api/v1/import/edits` (hand-edited MasterTimetable re-import).
 
 All errors are structured JSON: `{"error": {"code", "message", "details"}}`.
 
