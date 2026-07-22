@@ -9,12 +9,15 @@ from app.database import get_db
 from app.excel.import_templates import import_workbook, write_blank_template
 from app.excel.reimport import reimport_master_timetable
 from app.schemas.api import ImportResponse
+from app.security import require_admin
 
 router = APIRouter(tags=["import"])
 
 
 @router.post("/import", response_model=ImportResponse)
-async def import_excel(file: UploadFile, db: DbSession = Depends(get_db)):
+async def import_excel(
+    file: UploadFile, db: DbSession = Depends(get_db), _admin=Depends(require_admin)
+):
     """Upload the master Excel workbook: validate every row, then upsert.
     Any validation error aborts the whole import and is reported per row."""
     content = await file.read()
@@ -23,7 +26,9 @@ async def import_excel(file: UploadFile, db: DbSession = Depends(get_db)):
 
 
 @router.post("/import/edits")
-async def import_manual_edits(file: UploadFile, db: DbSession = Depends(get_db)):
+async def import_manual_edits(
+    file: UploadFile, db: DbSession = Depends(get_db), _admin=Depends(require_admin)
+):
     """Re-import a manually edited MasterTimetable sheet (design doc section 7):
     each edited session is re-validated against all hard constraints; invalid
     edits are rejected row-by-row, valid ones applied, soft report refreshed."""
@@ -35,7 +40,7 @@ async def import_manual_edits(file: UploadFile, db: DbSession = Depends(get_db))
 
 
 @router.post("/import/demo", response_model=ImportResponse)
-def load_demo_dataset(db: DbSession = Depends(get_db)):
+def load_demo_dataset(db: DbSession = Depends(get_db), _admin=Depends(require_admin)):
     """Load a small built-in demo dataset (2 semesters, 10 courses, 4 class
     groups, 8 teachers) so the workflow can be tried without preparing a file."""
     from app.excel.sample_data import write_sample_workbook

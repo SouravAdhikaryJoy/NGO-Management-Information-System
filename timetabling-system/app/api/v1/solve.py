@@ -7,7 +7,10 @@ from app.api.errors import api_error
 from app.database import SessionLocal, get_db
 from app.models import SolverRun
 from app.schemas.api import SolveResponse, SolveStatusResponse
+from app.security import require_admin
+from app.solver.constraints.registry import build_summary
 from app.solver.engine import execute_solver_run
+from app.solver.loader import load_current_timetable, load_problem
 
 router = APIRouter(tags=["solve"])
 
@@ -25,6 +28,7 @@ def trigger_solve(
     background_tasks: BackgroundTasks,
     regenerate_sessions: bool = True,
     db: DbSession = Depends(get_db),
+    _admin=Depends(require_admin),
 ):
     """Trigger an async Phase1+Phase2 run; poll /solve/{job_id}/status."""
     job_id = str(uuid.uuid4())
@@ -63,6 +67,11 @@ def solve_status(job_id: str, db: DbSession = Depends(get_db)):
     run = db.query(SolverRun).filter(SolverRun.job_id == job_id).one_or_none()
     if run is None:
         raise api_error(404, "job_not_found", f"no solver run with job_id {job_id!r}")
+    summary = None
+    if run.status == "COMPLETED":
+        problem = load_problem(db)
+        timetable = load_current_timetable(db, problem)
+        summary = build_summary(problem, timetable)
     return SolveStatusResponse(
         job_id=run.job_id,
         status=run.status,
@@ -73,4 +82,5 @@ def solve_status(job_id: str, db: DbSession = Depends(get_db)):
         hard_violations=run.hard_violations,
         soft_penalty=run.soft_penalty,
         error=run.error,
+        summary=summary,
     )

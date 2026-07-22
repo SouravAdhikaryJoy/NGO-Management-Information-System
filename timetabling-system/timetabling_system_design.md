@@ -50,6 +50,7 @@ below are the seeded defaults.
 | `H12_group_max_daily` | A class group may not exceed `group_max_sessions_per_day` (SystemConfig) occupied slots per day. |
 | `H13_course_once_per_day` | The same course may meet at most once per day for a given class group (a multi-slot session counts once). |
 | `H14_locked_session` | A locked (pinned) session must remain at exactly its locked day/slot/room. |
+| `H15_slot_type_scope` | A session may only occupy `TimeSlot`s whose `session_type_scope` (if set) includes its `session_type` — implements fixed, separate timeslot pools for lab vs. theory classes. |
 
 ### 2.2 Soft constraints (19) — weighted penalties, lower is better
 
@@ -90,7 +91,8 @@ surrogate integer `id` primary key plus `created_at`/`updated_at`.
   `room_type_code` → RoomType, `capacity` (int > 0)
 - **TimeSlot** — **NK** (`day_of_week`, `slot_index`); `day_of_week` in
   MON..SUN, `slot_index` ≥ 1 consecutive within a day, `start_time`,
-  `end_time`, `is_break` (bool)
+  `end_time`, `is_break` (bool), `session_type_scope` (optional comma list of
+  LECTURE|LAB|TUTORIAL; blank/null = any type may use the slot — see H15)
 - **Course** — `code` **NK**, `title`, `department_code` → Department,
   `semester` (int), `credit_hours` (float), `is_difficult` (bool, default
   false), `teacher_code` (optional → Teacher; explicit assignment)
@@ -123,6 +125,23 @@ surrogate integer `id` primary key plus `created_at`/`updated_at`.
   `phase1_iterations`, `phase2_iterations`, `runtime_seconds`,
   `hard_violations`, `soft_penalty`, `weights_snapshot` (JSON),
   `config_snapshot` (JSON), `error`, timestamps
+- **User** — `username` **NK**, `password_hash`, `is_admin` (bool). Accounts
+  gate every *write* operation (import, solve, manual edits, config changes,
+  course/teacher reassignment); all read/view endpoints stay public with no
+  account needed.
+
+## 3.1 Display convention: course.section
+
+A session's course code and **section** (the 1-based rank, alphabetical by
+class-group code, of its class group among all groups taking that course)
+are combined as `CODE.section`, e.g. `CSE123.3`. Cell labels in the routine
+follow the row's fixed context so nothing is repeated redundantly:
+
+| View (row is…) | Cell label |
+|---|---|
+| Room (MasterTimetable) | `CODE.section (TeacherCode)` |
+| Individual teacher | `CODE.section (RoomCode)` |
+| Class group | `CODE.section (TeacherCode) (RoomCode)` |
 
 ## 4. Solving algorithm — two phases
 
@@ -163,6 +182,19 @@ surrogate integer `id` primary key plus `created_at`/`updated_at`.
   rejected outright.
 - **Stopping**: whichever of `phase2_time_budget_seconds` /
   `phase2_iteration_budget` is hit first.
+- **Finisher**: the last `phase2_finisher_fraction` share of the budget
+  switches acceptance to strict improve-only (candidate must beat the current
+  cost), squeezing out the easy residual penalty LAHC/SA's looser acceptance
+  criterion leaves behind. Same move set, same hard-invariant check.
+- **Bookkeeping note**: `Timetable`'s per-slot occupancy indexes
+  (`room_busy`/`teacher_busy`/`group_busy` and the derived
+  `group_slots`/`teacher_slots`) are reference-counted, not single-valued.
+  Move evaluation routinely places a candidate session onto a slot another
+  session still legitimately holds (that overlap is exactly what hard-check
+  is meant to catch) before rejecting and undoing it; a single-value/plain-set
+  index would let that second occupant silently clobber the first one's
+  bookkeeping on removal, permanently corrupting the soft-penalty count from
+  then on even though `.placements` itself stayed correct.
 
 Every run logs seed, iteration counts, runtime, and full weight/config
 snapshots to `SolverRun` for reproducibility.
@@ -199,6 +231,7 @@ SystemConfig defaults:
 | `phase1_tabu_tenure` | int | 25 | tabu tenure |
 | `phase2_time_budget_seconds` | float | 60 | Phase 2 wall clock budget |
 | `phase2_iteration_budget` | int | 200000 | Phase 2 iteration budget |
+| `phase2_finisher_fraction` | float | 0.15 | share of the Phase 2 budget reserved for a strict improve-only descent pass at the end |
 | `lahc_history_length` | int | 500 | LAHC list length |
 | `acceptance_method` | str | lahc | `lahc` or `simulated_annealing` |
 | `sa_initial_temp` | float | 10.0 | SA start temperature |

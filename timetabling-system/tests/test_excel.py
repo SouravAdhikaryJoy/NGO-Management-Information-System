@@ -111,6 +111,7 @@ def test_export_workbook_structure(db):
     buffer.seek(0)
     wb = load_workbook(buffer)
     names = wb.sheetnames
+    assert "Summary" in names
     assert "MasterTimetable" in names
     assert "FeasibilityReport" in names
     assert "SoftConstraintScoreReport" in names
@@ -118,11 +119,17 @@ def test_export_workbook_structure(db):
     group_sheets = [n for n in names if n.startswith("G_")]
     assert len(teacher_sheets) == db.query(Teacher).count()
     assert len(group_sheets) == db.query(ClassGroup).count()
-    # feasibility report shows 14 hard constraints, all zero
+    # feasibility report shows 15 hard constraints, all zero
     ws = wb["FeasibilityReport"]
     rows = list(ws.iter_rows(min_row=2, values_only=True))
-    assert len(rows) == 14
+    assert len(rows) == 15
     assert all(row[2] == 0 for row in rows)
+    # summary sheet states 0 violations and every session placed
+    summary_rows = {row[0]: row[1] for row in wb["Summary"].iter_rows(min_row=3, values_only=True) if row[0]}
+    assert summary_rows["Hard constraint violations"] == 0
+    assert summary_rows["All hard constraints satisfied"] == "YES"
+    placed, total = summary_rows["Sessions placed"].split(" / ")
+    assert placed == total
 
 
 def _find_feasible_edit(db, problem, timetable):

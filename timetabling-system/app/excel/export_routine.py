@@ -1,10 +1,12 @@
 """Excel export of the solved routine (design doc section 5).
 
-MasterTimetable layout (parseable back by the manual-edit re-import):
+MasterTimetable layout (parseable back by the manual-edit re-import). Cell
+labels follow section 3.1's `CODE.section` convention — the row already says
+which room it is, so only the teacher needs to be named in the cell:
 
     Day: MON
     Room | 1 | 2 | ...        <- slot indexes
-    R101 | CS101 (LECTURE) / CSE1A / T01 | ...
+    R101 | CSE123.3 (T01) | ...
     <blank row between day blocks>
 """
 
@@ -16,16 +18,13 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
 from sqlalchemy.orm import Session as DbSession
 
+from app.labels import compute_sections, course_group_label
 from app.models import ClassGroup, Course, Room, Session, Teacher, TimeSlot
-from app.solver.constraints.registry import hard_violation_report, soft_penalty_breakdown
+from app.solver.constraints.registry import build_summary, hard_violation_report, soft_penalty_breakdown
 from app.solver.domain import Problem, Timetable
 
 HEADER_FONT = Font(bold=True)
 DAY_ORDER = ["SAT", "SUN", "MON", "TUE", "WED", "THU", "FRI"]
-
-
-def _cell_text(course_code, session_type, group_code, teacher_code):
-    return f"{course_code} ({session_type}) / {group_code} / {teacher_code}"
 
 
 def _sheet_title(prefix: str, code: str) -> str:
@@ -41,6 +40,12 @@ def export_routine(db: DbSession, problem: Problem, timetable: Timetable, path_o
     groups = {g.id: g for g in db.query(ClassGroup).all()}
     courses = {c.id: c for c in db.query(Course).all()}
     sessions = {s.id: s for s in db.query(Session).all()}
+    sections = compute_sections(db)
+
+    def code_section(s: Session) -> str:
+        return course_group_label(courses[s.course_id].code, sections.get(
+            (s.course_id, s.class_group_id), 1
+        ))
 
     days = sorted(
         {t.day_of_week for t in db.query(TimeSlot).all()},
@@ -75,9 +80,8 @@ def export_routine(db: DbSession, problem: Problem, timetable: Timetable, path_o
                 sid = occupancy.get((day, index, room.id))
                 if sid is not None:
                     s = sessions[sid]
-                    ws.cell(row=row_cursor, column=j, value=_cell_text(
-                        courses[s.course_id].code, s.session_type,
-                        groups[s.class_group_id].code, teachers[s.teacher_id].code,
+                    ws.cell(row=row_cursor, column=j, value=(
+                        f"{code_section(s)} ({teachers[s.teacher_id].code})"
                     ))
             row_cursor += 1
         row_cursor += 1  # blank row between day blocks
@@ -99,21 +103,19 @@ def export_routine(db: DbSession, problem: Problem, timetable: Timetable, path_o
         sheet.column_dimensions["A"].width = 8
 
     for teacher in sorted(teachers.values(), key=lambda t: t.code):
+        # row is a fixed teacher, so only the room needs naming: CODE.section (Room)
         personal_sheet(
             _sheet_title("T", teacher.code),
             lambda s, tid=teacher.id: s.teacher_id == tid,
-            lambda s, room_id: (
-                f"{courses[s.course_id].code} ({s.session_type}) / "
-                f"{groups[s.class_group_id].code} @ {rooms[room_id].code}"
-            ),
+            lambda s, room_id: f"{code_section(s)} ({rooms[room_id].code})",
         )
     for group in sorted(groups.values(), key=lambda g: g.code):
+        # row is a fixed class group: CODE.section (Teacher) (Room)
         personal_sheet(
             _sheet_title("G", group.code),
             lambda s, gid=group.id: s.class_group_id == gid,
             lambda s, room_id: (
-                f"{courses[s.course_id].code} ({s.session_type}) / "
-                f"{teachers[s.teacher_id].code} @ {rooms[room_id].code}"
+                f"{code_section(s)} ({teachers[s.teacher_id].code}) ({rooms[room_id].code})"
             ),
         )
 
@@ -151,5 +153,31 @@ def export_routine(db: DbSession, problem: Problem, timetable: Timetable, path_o
     ws.cell(row=i, column=1, value="TOTAL").font = HEADER_FONT
     ws.cell(row=i, column=6, value=sum(tier_totals.values()))
     ws.column_dimensions["A"].width = 30
+
+    # --- Summary ---
+    ws = wb.create_sheet("Summary", 0)
+    summary = build_summary(problem, timetable)
+    lines = [
+        ("Sessions placed", f"{summary['sessions_placed']} / {summary['sessions_total']}"),
+        ("Hard constraint violations", summary["hard_violations_total"]),
+        ("All hard constraints satisfied", "YES" if summary["hard_constraints_satisfied"] else "NO"),
+        ("Total weighted soft penalty", round(summary["soft_penalty_total"], 2)),
+        ("  Tier 1 (critical quality)", round(summary["soft_penalty_by_tier"].get(1, 0.0), 2)),
+        ("  Tier 2 (important)", round(summary["soft_penalty_by_tier"].get(2, 0.0), 2)),
+        ("  Tier 3 (nice-to-have)", round(summary["soft_penalty_by_tier"].get(3, 0.0), 2)),
+        ("Soft constraints with remaining penalty",
+         f"{summary['soft_constraints_with_penalty']} / {summary['soft_constraints_total']}"),
+        ("Soft constraints fully satisfied (0 penalty)", summary["soft_constraints_clean"]),
+    ]
+    ws.cell(row=1, column=1, value="Routine summary").font = Font(bold=True, size=14)
+    for i, (label, value) in enumerate(lines, start=3):
+        ws.cell(row=i, column=1, value=label).font = HEADER_FONT
+        ws.cell(row=i, column=2, value=value)
+    ws.cell(row=len(lines) + 5, column=1, value=(
+        "See FeasibilityReport for the constraint-by-constraint hard check, and "
+        "SoftConstraintScoreReport for the tier/weight breakdown."
+    ))
+    ws.column_dimensions["A"].width = 42
+    ws.column_dimensions["B"].width = 18
 
     wb.save(path_or_buffer)

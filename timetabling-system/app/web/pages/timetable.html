@@ -23,14 +23,18 @@
     <nav class="top" aria-label="Main">
       <a href="/">Workbench</a>
       <a href="/timetable" aria-current="page">Timetable</a>
+      <a href="/manage">Manage</a>
       <a href="/#guide">Guide</a>
       <a href="/docs">API</a>
     </nav>
+    <div id="auth-badge"></div>
   </div>
 </header>
 
 <main class="wrap" style="padding-top:36px">
   <h1 class="section-title" style="font-size:2rem">The weekly routine</h1>
+
+  <div id="conflict-banner"></div>
 
   <div class="toolbar" id="toolbar" hidden>
     <label for="view-mode">View</label>
@@ -38,8 +42,10 @@
       <option value="all">All rooms</option>
       <option value="group">One class group</option>
       <option value="teacher">One teacher</option>
+      <option value="semester">One semester</option>
+      <option value="department">One department</option>
     </select>
-    <select id="entity-select" hidden aria-label="Choose teacher or group"></select>
+    <select id="entity-select" hidden aria-label="Choose teacher, group, semester or department"></select>
     <div class="badges">
       <span class="badge" id="badge-feasible">✓ 0 clashes</span>
       <span class="badge" id="badge-penalty"></span>
@@ -60,10 +66,12 @@
   <div class="wrap">
     <span>University Timetabling System</span>
     <a href="/">Workbench</a>
+    <a href="/manage">Manage</a>
     <a href="/docs">API documentation</a>
   </div>
 </footer>
 
+<script src="/static/auth.js"></script>
 <script src="/static/timetable.js"></script>
 </body>
 </html>

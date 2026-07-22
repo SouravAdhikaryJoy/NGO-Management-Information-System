@@ -154,3 +154,13 @@ def client(db):
 
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture()
+def admin_client(client):
+    """A client already logged in as the seeded default admin account."""
+    response = client.post("/api/v1/auth/login", json={
+        "username": "admin", "password": "admin123",
+    })
+    assert response.status_code == 200, response.text
+    return client

@@ -36,6 +36,7 @@ class SolveStatusResponse(BaseModel):
     hard_violations: Optional[int] = None
     soft_penalty: Optional[float] = None
     error: Optional[str] = None
+    summary: Optional[dict] = None
 
 
 class SessionOut(BaseModel):
@@ -95,3 +96,18 @@ class ConfigPatch(BaseModel):
 
 class ConfigPatchRequest(BaseModel):
     config: List[ConfigPatch]
+
+
+class CoursePatch(BaseModel):
+    title: Optional[str] = None
+    teacher_id: Optional[int] = None
+    is_difficult: Optional[bool] = None
+    semester: Optional[int] = Field(default=None, ge=1)
+
+
+class TeacherPatch(BaseModel):
+    name: Optional[str] = None
+    max_sessions_per_day: Optional[int] = Field(default=None, ge=1)
+    max_sessions_per_week: Optional[int] = Field(default=None, ge=1)
+    employment_type: Optional[str] = None
+    prefers_back_to_back: Optional[bool] = None

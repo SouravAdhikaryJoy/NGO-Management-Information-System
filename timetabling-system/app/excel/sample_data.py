@@ -52,6 +52,7 @@ def build_sample_frames(scale: int = 1) -> dict:
             time_slots.append({
                 "day_of_week": day, "slot_index": index,
                 "start_time": start, "end_time": end, "is_break": False,
+                "session_type_scope": "",
             })
 
     for d in range(scale):

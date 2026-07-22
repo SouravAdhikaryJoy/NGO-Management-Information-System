@@ -50,7 +50,10 @@ SHEET_COLUMNS: Dict[str, List[str]] = {
     "Buildings": ["code", "name", "university_code"],
     "RoomTypes": ["code", "name"],
     "Rooms": ["code", "name", "building_code", "room_type_code", "capacity"],
-    "TimeSlots": ["day_of_week", "slot_index", "start_time", "end_time", "is_break"],
+    "TimeSlots": [
+        "day_of_week", "slot_index", "start_time", "end_time", "is_break",
+        "session_type_scope",
+    ],
     "Teachers": [
         "code", "name", "department_code", "max_sessions_per_day",
         "max_sessions_per_week", "employment_type", "prefers_back_to_back",
@@ -272,6 +275,17 @@ def import_workbook(db: DbSession, path_or_buffer) -> ImportResult:
         ids.setdefault("room", {})[obj.code] = obj.id
 
     def time_slots(row):
+        scope_raw = _opt_str(row, "session_type_scope")
+        scope = None
+        if scope_raw:
+            parts = [p.strip().upper() for p in scope_raw.split(",") if p.strip()]
+            bad = [p for p in parts if p not in SESSION_TYPES]
+            if bad:
+                raise RowError(
+                    "session_type_scope",
+                    f"unknown session type(s) {bad}; must be a comma list from {SESSION_TYPES}",
+                )
+            scope = ",".join(parts)
         upsert(TimeSlot, {
             "day_of_week": _req_enum(row, "day_of_week", DAYS),
             "slot_index": _req_int(row, "slot_index", minimum=1),
@@ -279,6 +293,7 @@ def import_workbook(db: DbSession, path_or_buffer) -> ImportResult:
             "start_time": _req_time(row, "start_time"),
             "end_time": _req_time(row, "end_time"),
             "is_break": _req_bool(row, "is_break", default=False),
+            "session_type_scope": scope,
         })
 
     def teachers(row):

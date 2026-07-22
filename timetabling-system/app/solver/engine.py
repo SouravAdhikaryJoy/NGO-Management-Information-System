@@ -65,9 +65,9 @@ def execute_solver_run(db: DbSession, job_id: str, regenerate_sessions: bool = T
         db.commit()
         logger.info(
             "solver run %s completed in %.2fs: penalty %.1f -> %.1f "
-            "(phase1 %d iters, phase2 %d iters, %d accepted) move_stats=%s",
+            "(phase1 %d iters, phase2 %d iters [%d finisher], %d accepted) move_stats=%s",
             job_id, run.runtime_seconds, p2.initial_penalty, p2.final_penalty,
-            p1.iterations, p2.iterations, p2.accepted, p2.move_stats,
+            p1.iterations, p2.iterations, p2.finisher_iterations, p2.accepted, p2.move_stats,
         )
         return run
     except Exception as exc:  # surfaced via job status, never a raw 500

@@ -18,6 +18,10 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* the `hidden` attribute must always win, regardless of any later `display`
+   rule (flex/grid layouts on the same element would otherwise un-hide it) */
+[hidden] { display: none !important; }
+
 html { scroll-behavior: smooth; }
 
 body {
@@ -270,3 +274,92 @@ footer.colophon a:hover { text-decoration: underline; }
   .hero { padding-top: 44px; }
   nav.top { gap: 12px; }
 }
+
+/* ── auth: badge, modal, small buttons ─────────────────────────────────── */
+
+#auth-badge { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
+.btn.small { padding: 5px 11px; font-size: .78rem; box-shadow: 2px 2px 0 var(--ink); }
+
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(29, 42, 51, .55);
+  display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px;
+}
+.modal-card {
+  background: var(--card); border: 2px solid var(--ink); border-radius: 6px;
+  box-shadow: 6px 6px 0 var(--ink); padding: 26px; width: 100%; max-width: 360px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.modal-card h3 { font-family: var(--font-display); font-size: 1.3rem; }
+.modal-card label { display: flex; flex-direction: column; gap: 5px; font-size: .82rem; font-weight: 700; color: var(--ink-soft); }
+.modal-card input {
+  font-family: var(--font-body); font-size: .95rem; padding: 8px 10px;
+  border: 2px solid var(--ink); border-radius: 3px; background: var(--paper);
+}
+
+/* ── auth-gated hint ─────────────────────────────────────────────────────── */
+
+.locked-hint {
+  font-size: .82rem; color: var(--ink-soft); border: 1px dashed var(--rule);
+  border-radius: 3px; padding: 8px 12px; background: rgba(255,253,246,.6);
+}
+
+/* ── conflicts ───────────────────────────────────────────────────────────── */
+
+.conflict-banner {
+  border: 2px solid var(--sienna); background: rgba(176, 73, 28, .1);
+  border-radius: 4px; padding: 14px 18px; margin-bottom: 18px; display: flex;
+  gap: 12px; align-items: flex-start;
+}
+.conflict-banner .mark { font-size: 1.4rem; line-height: 1; }
+.conflict-banner ul { margin: 6px 0 0 18px; font-size: .88rem; }
+.lesson.conflict {
+  border-left-color: var(--sienna) !important; background: rgba(176, 73, 28, .22) !important;
+  outline: 2px solid var(--sienna); outline-offset: -2px; position: relative;
+}
+.lesson.conflict .clash-tag {
+  display: block; font-size: .68rem; font-weight: 700; color: var(--sienna-deep);
+  text-transform: uppercase; letter-spacing: .04em; margin-top: 2px;
+}
+.lesson { cursor: default; }
+.lesson.editable { cursor: grab; }
+.lesson.editable:hover { box-shadow: 0 0 0 2px var(--gold) inset; }
+.lesson.drag-over { box-shadow: 0 0 0 2px var(--moss) inset; background: rgba(61,107,80,.18); }
+
+/* ── edit drawer ─────────────────────────────────────────────────────────── */
+
+.drawer-backdrop {
+  position: fixed; inset: 0; background: rgba(29, 42, 51, .4); z-index: 90;
+}
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(360px, 100%);
+  background: var(--card); border-left: 2px solid var(--ink); box-shadow: -8px 0 24px rgba(0,0,0,.2);
+  z-index: 91; padding: 22px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
+  animation: slidein .18s ease both;
+}
+@keyframes slidein { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.drawer h3 { font-family: var(--font-display); font-size: 1.25rem; }
+.drawer .close-x {
+  position: absolute; top: 16px; right: 18px; background: none; border: none;
+  font-size: 1.3rem; cursor: pointer; color: var(--ink-soft); line-height: 1;
+}
+.drawer label { display: flex; flex-direction: column; gap: 5px; font-size: .78rem; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .05em; }
+.drawer select, .drawer input {
+  font-family: var(--font-body); font-size: .92rem; padding: 8px 10px;
+  border: 2px solid var(--ink); border-radius: 3px; background: var(--paper);
+}
+.drawer .meta { font-size: .85rem; color: var(--ink-soft); background: var(--paper-deep); border-radius: 3px; padding: 10px 12px; }
+.drawer .actions { display: flex; gap: 10px; margin-top: 4px; }
+
+/* ── manage page ─────────────────────────────────────────────────────────── */
+
+.manage-table-wrap { overflow-x: auto; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; box-shadow: var(--shadow); }
+table.manage { width: 100%; border-collapse: collapse; font-size: .86rem; min-width: 640px; }
+table.manage th {
+  text-align: left; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-soft); border-bottom: 2px solid var(--ink); padding: 9px 10px; background: var(--paper-deep);
+  position: sticky; top: 0;
+}
+table.manage td { padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+table.manage select { font-size: .82rem; padding: 4px 6px; border: 1px solid var(--rule); border-radius: 3px; background: var(--card); }
+table.manage .save-btn { font-size: .72rem; padding: 4px 10px; }
+.pill-count { font-size: .72rem; color: var(--ink-soft); }

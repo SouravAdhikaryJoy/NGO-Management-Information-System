@@ -1,4 +1,5 @@
 from datetime import time
+from typing import Optional
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Time, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
@@ -58,3 +59,7 @@ class TimeSlot(Base, TimestampMixin):
     start_time: Mapped[time] = mapped_column(Time)
     end_time: Mapped[time] = mapped_column(Time)
     is_break: Mapped[bool] = mapped_column(Boolean, default=False)
+    # comma list of session types allowed to start here (e.g. "LAB" or
+    # "LECTURE,TUTORIAL"); NULL/blank means any session type may use it.
+    # Implements fixed timeslot pools per class type (H15).
+    session_type_scope: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)

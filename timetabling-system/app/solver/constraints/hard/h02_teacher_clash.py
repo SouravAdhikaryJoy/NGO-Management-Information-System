@@ -7,7 +7,7 @@ class TeacherClash(HardConstraint):
 
     def check(self, session, placement, problem, existing_sessions):
         for i in range(placement.index, placement.index + session.duration):
-            other = existing_sessions.teacher_busy.get((session.teacher_id, placement.day, i))
-            if other is not None and other != session.id:
+            occupants = existing_sessions.teacher_busy.get((session.teacher_id, placement.day, i))
+            if occupants and occupants - {session.id}:
                 return False
         return True

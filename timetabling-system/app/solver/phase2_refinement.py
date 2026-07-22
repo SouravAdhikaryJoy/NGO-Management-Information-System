@@ -33,6 +33,7 @@ class Phase2Result:
     final_penalty: float
     iterations: int
     accepted: int
+    finisher_iterations: int = 0
     move_stats: Dict[str, dict] = field(default_factory=dict)
 
 
@@ -70,10 +71,22 @@ def _op_is_hard_feasible(op, problem, timetable, hard) -> bool:
 
 
 def run_phase2(problem: Problem, timetable: Timetable, rng: random.Random) -> Phase2Result:
+    """LAHC/SA-driven search, then a bounded strict-descent finisher.
+
+    LAHC deliberately tolerates occasional worse moves to escape local optima,
+    which means the state it's in when time runs out is rarely itself a local
+    optimum. Reserving the tail of the budget (`phase2_finisher_fraction`) for
+    a strict "only accept if it's better" pass squeezes out that easy,
+    otherwise-wasted residual penalty at essentially no cost to exploration
+    time, without touching the move set or the hard-constraint invariant.
+    """
     hard = active_hard_constraints(problem)
     time_budget = float(problem.cfg("phase2_time_budget_seconds", 60))
     iteration_budget = int(problem.cfg("phase2_iteration_budget", 200000))
     window = int(problem.cfg("hyper_heuristic_window", 100))
+    finisher_fraction = min(max(float(problem.cfg("phase2_finisher_fraction", 0.15)), 0.0), 0.9)
+    finisher_start_time = time_budget * (1 - finisher_fraction)
+    finisher_start_iter = int(iteration_budget * (1 - finisher_fraction))
 
     current_cost = total_soft_penalty(problem, timetable)
     initial_cost = current_cost
@@ -84,12 +97,17 @@ def run_phase2(problem: Problem, timetable: Timetable, rng: random.Random) -> Ph
     best_cost = current_cost
 
     start = time.monotonic()
-    iterations = accepted = 0
+    iterations = accepted = finisher_iterations = 0
     attempts: Dict[str, int] = {m.key: 0 for m in MOVES}
     accepts: Dict[str, int] = {m.key: 0 for m in MOVES}
 
     while iterations < iteration_budget and (time.monotonic() - start) < time_budget:
         iterations += 1
+        in_finisher = (
+            iterations >= finisher_start_iter or (time.monotonic() - start) >= finisher_start_time
+        )
+        if in_finisher:
+            finisher_iterations += 1
         move = selector.select(rng)
         attempts[move.key] += 1
         op = move.propose(problem, timetable, rng)
@@ -106,9 +124,14 @@ def run_phase2(problem: Problem, timetable: Timetable, rng: random.Random) -> Ph
             selector.record(move, False)
             continue
         candidate_cost = total_soft_penalty(problem, timetable)
-        if acceptance.accept(candidate_cost, current_cost, rng):
+        accept = (
+            candidate_cost < current_cost if in_finisher
+            else acceptance.accept(candidate_cost, current_cost, rng)
+        )
+        if accept:
             current_cost = candidate_cost
-            acceptance.on_accept(current_cost)
+            if not in_finisher:
+                acceptance.on_accept(current_cost)
             accepted += 1
             accepts[move.key] += 1
             selector.record(move, True)
@@ -128,5 +151,6 @@ def run_phase2(problem: Problem, timetable: Timetable, rng: random.Random) -> Ph
         final_penalty=best_cost,
         iterations=iterations,
         accepted=accepted,
+        finisher_iterations=finisher_iterations,
         move_stats=move_stats,
     )

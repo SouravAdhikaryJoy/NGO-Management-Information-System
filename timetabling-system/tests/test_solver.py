@@ -57,6 +57,8 @@ def test_phase2_improves_and_keeps_hard_invariant(sample_problem):
     initial = total_soft_penalty(problem, p1.timetable)
     p2 = run_phase2(problem, p1.timetable, rng)
     assert p2.final_penalty <= initial
+    # the strict-descent finisher ran and never made things worse
+    assert p2.finisher_iterations > 0
     # hard invariant: refined timetable still has zero hard violations
     report = hard_violation_report(problem, p2.timetable)
     assert all(row["violations"] == 0 for row in report), report
@@ -64,6 +66,29 @@ def test_phase2_improves_and_keeps_hard_invariant(sample_problem):
     # every move type was exercised by the hyper-heuristic selector
     assert set(p2.move_stats) == {"single_swap", "kempe_chain", "ruin_recreate", "day_shift"}
     assert sum(stats["attempts"] for stats in p2.move_stats.values()) == p2.iterations
+
+
+def test_phase2_finisher_only_accepts_strict_improvements(sample_problem):
+    """phase2_finisher_fraction is clamped to <=0.9 (some exploration is always
+    kept). A generous time budget with a small, fixed iteration budget makes
+    the finisher cutover purely iteration-count based (not wall-clock timing
+    dependent), so the resulting split is deterministic."""
+    db, problem = sample_problem
+    problem.config["phase2_finisher_fraction"] = 1.0
+    problem.config["phase2_time_budget_seconds"] = 60.0
+    problem.config["phase2_iteration_budget"] = 200
+    rng = random.Random(7)
+    p1 = run_phase1(problem, rng)
+    assert p1.feasible
+
+    initial = total_soft_penalty(problem, p1.timetable)
+    p2 = run_phase2(problem, p1.timetable, rng)
+    assert p2.final_penalty <= initial
+    assert p2.iterations == 200
+    # ~90% finisher share (float rounding on the 10% cutover can shift this by 1)
+    assert 179 <= p2.finisher_iterations <= 183
+    # independently recomputed, matching the reported final_penalty
+    assert total_soft_penalty(problem, p2.timetable) == p2.final_penalty
 
 
 def test_solver_respects_locked_sessions(db):

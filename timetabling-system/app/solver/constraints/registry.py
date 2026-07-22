@@ -4,6 +4,8 @@ Adding a constraint = new class file + one entry here. The solver only ever
 iterates these lists.
 """
 
+from typing import Dict
+
 from app.solver.constraints.hard.h01_room_occupancy import RoomOccupancy
 from app.solver.constraints.hard.h02_teacher_clash import TeacherClash
 from app.solver.constraints.hard.h03_group_clash import GroupClash
@@ -18,6 +20,7 @@ from app.solver.constraints.hard.h11_teacher_max_daily import TeacherMaxDaily
 from app.solver.constraints.hard.h12_group_max_daily import GroupMaxDaily
 from app.solver.constraints.hard.h13_course_once_per_day import CourseOncePerDay
 from app.solver.constraints.hard.h14_locked_session import LockedSession
+from app.solver.constraints.hard.h15_slot_type_scope import SlotTypeScope
 from app.solver.constraints.soft.s01_teacher_preferred_slots import TeacherPreferredSlots
 from app.solver.constraints.soft.s02_teacher_course_preference import TeacherCoursePreferencePenalty
 from app.solver.constraints.soft.s03_group_gaps import GroupGaps
@@ -53,6 +56,7 @@ HARD_CONSTRAINTS = [
     GroupMaxDaily(),
     CourseOncePerDay(),
     LockedSession(),
+    SlotTypeScope(),
 ]
 
 SOFT_CONSTRAINTS = [
@@ -144,3 +148,30 @@ def hard_violation_report(problem, timetable):
         {"key": c.key, "description": c.description, "violations": c.violations(problem, timetable)}
         for c in HARD_CONSTRAINTS
     ]
+
+
+def build_summary(problem, timetable):
+    """One glance at how a routine turned out: how many classes actually got
+    placed, whether every hard rule holds, and how much soft-constraint
+    penalty is still left (and where)."""
+    total = len(problem.sessions)
+    placed = len(timetable.placements)
+    hard_report = hard_violation_report(problem, timetable)
+    hard_total = sum(row["violations"] for row in hard_report)
+    soft_report = soft_penalty_breakdown(problem, timetable)
+    by_tier: Dict[int, float] = {}
+    for row in soft_report:
+        by_tier[row["tier"]] = by_tier.get(row["tier"], 0.0) + row["weighted_penalty"]
+    with_penalty = sum(1 for row in soft_report if row["enabled"] and row["raw_penalty"] > 0)
+    return {
+        "sessions_total": total,
+        "sessions_placed": placed,
+        "sessions_unplaced": total - placed,
+        "hard_violations_total": hard_total,
+        "hard_constraints_satisfied": hard_total == 0 and placed == total,
+        "soft_penalty_total": sum(row["weighted_penalty"] for row in soft_report),
+        "soft_penalty_by_tier": by_tier,
+        "soft_constraints_total": len(soft_report),
+        "soft_constraints_with_penalty": with_penalty,
+        "soft_constraints_clean": len(soft_report) - with_penalty,
+    }

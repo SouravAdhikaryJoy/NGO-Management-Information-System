@@ -39,7 +39,8 @@ def solve(client):
     return job_id
 
 
-def test_full_flow(client):
+def test_full_flow(admin_client):
+    client = admin_client
     upload_sample(client)
     shrink_budgets(client)
     job_id = solve(client)
@@ -52,6 +53,15 @@ def test_full_flow(client):
     assert len(body["sessions"]) > 40
     assert all(row["violations"] == 0 for row in body["feasibility_report"])
     assert len(body["soft_constraint_report"]) == 19
+    summary = body["summary"]
+    assert summary["sessions_placed"] == summary["sessions_total"] == len(body["sessions"])
+    assert summary["hard_violations_total"] == 0
+    assert summary["hard_constraints_satisfied"] is True
+    assert summary["soft_constraints_total"] == 19
+    assert 0 <= summary["soft_constraints_with_penalty"] <= 19
+
+    status = client.get(f"/api/v1/solve/{job_id}/status").json()
+    assert status["summary"] == summary
 
     # exports
     for fmt, content_type in [
@@ -87,14 +97,16 @@ def test_solve_status_not_found(client):
     assert response.json()["error"]["code"] == "job_not_found"
 
 
-def test_timetable_requires_completed_run(client):
+def test_timetable_requires_completed_run(admin_client):
+    client = admin_client
     upload_sample(client)
     response = client.get("/api/v1/timetable/nope")
     assert response.status_code == 404
     assert "error" in response.json()
 
 
-def test_session_patch_validates_hard_constraints(client):
+def test_session_patch_validates_hard_constraints(admin_client):
+    client = admin_client
     upload_sample(client)
     shrink_budgets(client)
     job_id = solve(client)
@@ -125,9 +137,10 @@ def test_session_patch_validates_hard_constraints(client):
     assert "soft_penalty" in response.json()
 
 
-def test_weights_and_config_endpoints(client):
+def test_weights_and_config_endpoints(admin_client):
+    client = admin_client
     weights = client.get("/api/v1/config/weights").json()
-    assert len(weights) == 33  # 14 hard + 19 soft
+    assert len(weights) == 34  # 15 hard + 19 soft
     response = client.patch("/api/v1/config/weights", json={"weights": [
         {"constraint_key": "S03_group_gaps", "weight": 20.0},
     ]})

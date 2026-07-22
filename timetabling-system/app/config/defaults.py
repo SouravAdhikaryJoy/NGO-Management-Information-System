@@ -16,6 +16,7 @@ HARD_CONSTRAINT_DEFAULTS = [
     ("H12_group_max_daily", 0, 0.0, True),
     ("H13_course_once_per_day", 0, 0.0, True),
     ("H14_locked_session", 0, 0.0, True),
+    ("H15_slot_type_scope", 0, 0.0, True),
 ]
 
 SOFT_CONSTRAINT_DEFAULTS = [
@@ -53,6 +54,10 @@ SYSTEM_CONFIG_DEFAULTS = {
     "phase1_tabu_tenure": ("25", "int", "Phase 1 tabu tenure"),
     "phase2_time_budget_seconds": ("60", "float", "Phase 2 wall clock budget"),
     "phase2_iteration_budget": ("200000", "int", "Phase 2 iteration budget"),
+    "phase2_finisher_fraction": (
+        "0.15", "float",
+        "share of the Phase 2 budget reserved for a strict improve-only descent pass",
+    ),
     "lahc_history_length": ("500", "int", "LAHC history list length"),
     "acceptance_method": ("lahc", "str", "lahc | simulated_annealing"),
     "sa_initial_temp": ("10.0", "float", "SA initial temperature"),

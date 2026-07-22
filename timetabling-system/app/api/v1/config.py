@@ -11,6 +11,7 @@ from app.schemas.api import (
     WeightOut,
     WeightsPatchRequest,
 )
+from app.security import require_admin
 
 router = APIRouter(tags=["config"])
 
@@ -27,7 +28,9 @@ def get_weights(db: DbSession = Depends(get_db)):
 
 
 @router.patch("/config/weights", response_model=list[WeightOut])
-def patch_weights(request: WeightsPatchRequest, db: DbSession = Depends(get_db)):
+def patch_weights(
+    request: WeightsPatchRequest, db: DbSession = Depends(get_db), _admin=Depends(require_admin)
+):
     for patch in request.weights:
         row = (
             db.query(ConstraintWeight)
@@ -56,7 +59,9 @@ def get_system_config(db: DbSession = Depends(get_db)):
 
 
 @router.patch("/config/system", response_model=list[ConfigOut])
-def patch_system_config(request: ConfigPatchRequest, db: DbSession = Depends(get_db)):
+def patch_system_config(
+    request: ConfigPatchRequest, db: DbSession = Depends(get_db), _admin=Depends(require_admin)
+):
     for patch in request.config:
         row = db.query(SystemConfig).filter(SystemConfig.key == patch.key).one_or_none()
         if row is None:

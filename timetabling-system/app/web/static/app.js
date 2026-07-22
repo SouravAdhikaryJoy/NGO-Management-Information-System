@@ -36,6 +36,7 @@ function describeImport(el, body) {
 }
 
 async function loadDemo() {
+  if (!Auth.requireLogin()) return;
   const el = $("import-result");
   notice(el, "ok", "Loading demo dataset…");
   const { body } = await api("/api/v1/import/demo", { method: "POST" });
@@ -47,6 +48,7 @@ $("btn-demo").addEventListener("click", loadDemo);
 $("hero-demo").addEventListener("click", loadDemo);
 
 $("btn-import").addEventListener("click", async () => {
+  if (!Auth.requireLogin()) return;
   const el = $("import-result");
   const input = $("file-input");
   if (!input.files.length) {
@@ -99,6 +101,7 @@ async function poll(jobId) {
 }
 
 $("btn-solve").addEventListener("click", async () => {
+  if (!Auth.requireLogin()) return;
   clearTimeout(pollTimer);
   $("solve-detail").innerHTML = "";
   setSolveStatus("running", "Starting solver…");

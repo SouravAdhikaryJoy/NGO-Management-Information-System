@@ -11,12 +11,18 @@ from app.solver.constraints.registry import failing_hard_keys, total_soft_penalt
 from app.solver.domain import Placement
 from app.solver.loader import load_current_timetable, load_problem
 from app.schemas.api import SessionPatch
+from app.security import require_admin
 
 router = APIRouter(tags=["sessions"])
 
 
 @router.patch("/session/{session_id}")
-def patch_session(session_id: int, patch: SessionPatch, db: DbSession = Depends(get_db)):
+def patch_session(
+    session_id: int,
+    patch: SessionPatch,
+    db: DbSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
     """Manual override of one session's day/slot/room/teacher, validated
     against every hard constraint before being applied."""
     session = db.get(Session, session_id)

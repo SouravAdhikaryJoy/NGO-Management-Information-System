@@ -14,6 +14,7 @@ from app.solver.constraints.hard.h11_teacher_max_daily import TeacherMaxDaily
 from app.solver.constraints.hard.h12_group_max_daily import GroupMaxDaily
 from app.solver.constraints.hard.h13_course_once_per_day import CourseOncePerDay
 from app.solver.constraints.hard.h14_locked_session import LockedSession
+from app.solver.constraints.hard.h15_slot_type_scope import SlotTypeScope
 from app.solver.domain import Placement, SlotData, TeacherData, Timetable
 from tests.conftest import default_config, mk_problem, mk_session, place_all
 
@@ -174,6 +175,33 @@ def test_h14_locked_session():
     assert not constraint.check(s, Placement("MON", 2, 2), problem, timetable)
 
 
+def test_h15_slot_type_scope():
+    lab_session = mk_session(1, room_type=2, session_type="LAB", duration=1)
+    slots = {
+        ("MON", 1): SlotData("MON", 1, allowed_types=frozenset({"LECTURE"})),
+        ("MON", 2): SlotData("MON", 2, allowed_types=frozenset({"LAB"})),
+        ("MON", 3): SlotData("MON", 3),  # unrestricted
+    }
+    problem = mk_problem([lab_session], slots=slots)
+    timetable = Timetable(problem)
+    constraint = SlotTypeScope()
+    assert not constraint.check(lab_session, Placement("MON", 1, 3), problem, timetable)
+    assert constraint.check(lab_session, Placement("MON", 2, 3), problem, timetable)
+    assert constraint.check(lab_session, Placement("MON", 3, 3), problem, timetable)
+
+
+def test_h15_slot_type_scope_multislot_every_slot_must_allow():
+    lab_session = mk_session(1, room_type=2, session_type="LAB", duration=2)
+    slots = {
+        ("MON", 1): SlotData("MON", 1, allowed_types=frozenset({"LAB"})),
+        ("MON", 2): SlotData("MON", 2, allowed_types=frozenset({"LECTURE"})),
+    }
+    problem = mk_problem([lab_session], slots=slots)
+    assert not SlotTypeScope().check(
+        lab_session, Placement("MON", 1, 3), problem, Timetable(problem)
+    )
+
+
 def test_full_timetable_violation_counts_are_zero_on_clean_assignment():
     from app.solver.constraints.registry import hard_violation_report
 
@@ -183,4 +211,4 @@ def test_full_timetable_violation_counts_are_zero_on_clean_assignment():
     timetable = place_all(problem, {1: ("MON", 1, 1), 2: ("MON", 1, 2)})
     report = hard_violation_report(problem, timetable)
     assert all(row["violations"] == 0 for row in report)
-    assert len(report) == 14
+    assert len(report) == 15

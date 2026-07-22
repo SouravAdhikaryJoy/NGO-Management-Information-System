@@ -10,7 +10,7 @@ from app.database import get_db
 from app.excel.export_formats import to_csv, to_ics, to_pdf
 from app.excel.export_routine import export_routine
 from app.models import SolverRun
-from app.solver.constraints.registry import hard_violation_report, soft_penalty_breakdown
+from app.solver.constraints.registry import build_summary, hard_violation_report, soft_penalty_breakdown
 from app.solver.loader import load_current_timetable, load_problem
 
 router = APIRouter(tags=["timetable"])
@@ -44,6 +44,7 @@ def get_timetable(run_id: str, db: DbSession = Depends(get_db)):
         "sessions": session_rows(db),
         "feasibility_report": hard_violation_report(problem, timetable),
         "soft_constraint_report": soft_penalty_breakdown(problem, timetable),
+        "summary": build_summary(problem, timetable),
     }
 
 

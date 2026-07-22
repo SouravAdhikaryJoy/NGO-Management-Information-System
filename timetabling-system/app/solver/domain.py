@@ -20,6 +20,9 @@ class SlotData:
     day: str
     index: int
     is_break: bool = False
+    # None = any session type may start here; otherwise the allowed subset
+    # (e.g. {"LAB"} or {"LECTURE", "TUTORIAL"}) — fixed lab/theory timeslots.
+    allowed_types: Optional[frozenset] = None
 
 
 @dataclass(frozen=True)
@@ -126,11 +129,19 @@ class Timetable:
     def __init__(self, problem: Problem):
         self.problem = problem
         self.placements: Dict[int, Placement] = {}
-        # (resource_id, day, index) -> session_id
-        self.room_busy: Dict[Tuple[int, str, int], int] = {}
-        self.teacher_busy: Dict[Tuple[int, str, int], int] = {}
-        self.group_busy: Dict[Tuple[int, str, int], int] = {}
-        # entity_id -> day -> set of occupied indexes
+        # (resource_id, day, index) -> set of occupying session ids. A set,
+        # not a single id: move evaluation can transiently place a candidate
+        # session onto a slot another session already legitimately holds
+        # (that's exactly what hard-constraint checking needs to detect), so
+        # a second occupant must never silently clobber the first one's
+        # bookkeeping — it has to be tracked and cleanly un-recorded on its
+        # own removal, independent of whatever else is sharing the slot.
+        self.room_busy: Dict[Tuple[int, str, int], Set[int]] = {}
+        self.teacher_busy: Dict[Tuple[int, str, int], Set[int]] = {}
+        self.group_busy: Dict[Tuple[int, str, int], Set[int]] = {}
+        # entity_id -> day -> set of occupied indexes, derived from *_busy
+        # emptiness so a rejected/undone overlapping placement can never
+        # erase an unrelated session's still-legitimate slot.
         self.teacher_slots: Dict[int, Dict[str, Set[int]]] = {}
         self.group_slots: Dict[int, Dict[str, Set[int]]] = {}
         # (course_id, group_id, day) -> number of sessions (for H13, O(1))
@@ -152,9 +163,9 @@ class Timetable:
         s = self.problem.sessions[session_id]
         self.placements[session_id] = placement
         for i in range(placement.index, placement.index + s.duration):
-            self.room_busy[(placement.room_id, placement.day, i)] = session_id
-            self.teacher_busy[(s.teacher_id, placement.day, i)] = session_id
-            self.group_busy[(s.group_id, placement.day, i)] = session_id
+            self.room_busy.setdefault((placement.room_id, placement.day, i), set()).add(session_id)
+            self.teacher_busy.setdefault((s.teacher_id, placement.day, i), set()).add(session_id)
+            self.group_busy.setdefault((s.group_id, placement.day, i), set()).add(session_id)
             self.teacher_slots.setdefault(s.teacher_id, {}).setdefault(placement.day, set()).add(i)
             self.group_slots.setdefault(s.group_id, {}).setdefault(placement.day, set()).add(i)
         key = (s.course_id, s.group_id, placement.day)
@@ -164,11 +175,20 @@ class Timetable:
         placement = self.placements.pop(session_id)
         s = self.problem.sessions[session_id]
         for i in range(placement.index, placement.index + s.duration):
-            self.room_busy.pop((placement.room_id, placement.day, i), None)
-            self.teacher_busy.pop((s.teacher_id, placement.day, i), None)
-            self.group_busy.pop((s.group_id, placement.day, i), None)
-            self.teacher_slots.get(s.teacher_id, {}).get(placement.day, set()).discard(i)
-            self.group_slots.get(s.group_id, {}).get(placement.day, set()).discard(i)
+            room_key = (placement.room_id, placement.day, i)
+            teacher_key = (s.teacher_id, placement.day, i)
+            group_key = (s.group_id, placement.day, i)
+            self.room_busy.get(room_key, set()).discard(session_id)
+            if not self.room_busy.get(room_key):
+                self.room_busy.pop(room_key, None)
+            self.teacher_busy.get(teacher_key, set()).discard(session_id)
+            if not self.teacher_busy.get(teacher_key):
+                self.teacher_busy.pop(teacher_key, None)
+                self.teacher_slots.get(s.teacher_id, {}).get(placement.day, set()).discard(i)
+            self.group_busy.get(group_key, set()).discard(session_id)
+            if not self.group_busy.get(group_key):
+                self.group_busy.pop(group_key, None)
+                self.group_slots.get(s.group_id, {}).get(placement.day, set()).discard(i)
         key = (s.course_id, s.group_id, placement.day)
         remaining = self.course_group_day.get(key, 0) - 1
         if remaining > 0:
@@ -190,7 +210,5 @@ class Timetable:
                 (self.teacher_busy, s.teacher_id),
                 (self.group_busy, s.group_id),
             ):
-                other = busy.get((rid, placement.day, i))
-                if other is not None and other != session_id:
-                    conflicts.add(other)
+                conflicts.update(busy.get((rid, placement.day, i), set()) - {session_id})
         return conflicts

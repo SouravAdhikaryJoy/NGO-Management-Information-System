@@ -21,10 +21,19 @@ def test_timetable_page(client):
     assert 'name="description"' in response.text
 
 
+def test_manage_page(client):
+    response = client.get("/manage")
+    assert response.status_code == 200
+    assert 'name="description"' in response.text
+    assert "courses-table" in response.text
+
+
 def test_static_assets(client):
     assert client.get("/static/styles.css").status_code == 200
     assert client.get("/static/app.js").status_code == 200
+    assert client.get("/static/auth.js").status_code == 200
     assert client.get("/static/timetable.js").status_code == 200
+    assert client.get("/static/manage.js").status_code == 200
 
 
 def test_robots_and_sitemap(client):
@@ -35,17 +44,19 @@ def test_robots_and_sitemap(client):
     assert sitemap.status_code == 200
     assert "<urlset" in sitemap.text
     assert "/timetable" in sitemap.text
+    assert "/manage" in sitemap.text
 
 
-def test_demo_endpoint_loads_dataset(client):
-    response = client.post("/api/v1/import/demo")
+def test_demo_endpoint_loads_dataset(admin_client):
+    response = admin_client.post("/api/v1/import/demo")
     assert response.status_code == 200
     body = response.json()
     assert body["ok"], body["errors"]
     assert body["counts"]["Courses"] == 10
 
 
-def test_runs_listing(client):
+def test_runs_listing(admin_client):
+    client = admin_client
     assert client.get("/api/v1/solve/runs").json() == {"runs": []}
     client.post("/api/v1/import/demo")
     client.patch("/api/v1/config/system", json={"config": [

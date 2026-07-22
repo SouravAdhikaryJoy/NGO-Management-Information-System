@@ -24,6 +24,11 @@ def timetable_page():
     return FileResponse(PAGES_DIR / "timetable.html", media_type="text/html")
 
 
+@router.get("/manage")
+def manage_page():
+    return FileResponse(PAGES_DIR / "manage.html", media_type="text/html")
+
+
 @router.get("/robots.txt")
 def robots():
     return PlainTextResponse(
@@ -39,7 +44,7 @@ def sitemap(request: Request):
     base = str(request.base_url).rstrip("/")
     urls = "".join(
         f"<url><loc>{base}{path}</loc><changefreq>weekly</changefreq></url>"
-        for path in ("/", "/timetable")
+        for path in ("/", "/timetable", "/manage")
     )
     return Response(
         content=(

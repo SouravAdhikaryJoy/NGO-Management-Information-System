@@ -122,8 +122,15 @@ def generate_sessions(db: DbSession) -> int:
 
 
 def load_problem(db: DbSession) -> Problem:
+    def _scope(raw: str | None):
+        if not raw or not raw.strip():
+            return None
+        return frozenset(part.strip().upper() for part in raw.split(",") if part.strip())
+
     slots = {
-        (t.day_of_week, t.slot_index): SlotData(t.day_of_week, t.slot_index, t.is_break)
+        (t.day_of_week, t.slot_index): SlotData(
+            t.day_of_week, t.slot_index, t.is_break, _scope(t.session_type_scope)
+        )
         for t in db.query(TimeSlot).all()
     }
     rooms = {
