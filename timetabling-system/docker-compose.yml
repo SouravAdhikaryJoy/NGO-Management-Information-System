@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: timetabling
+      POSTGRES_PASSWORD: timetabling
+      POSTGRES_DB: timetabling
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timetabling"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg2://timetabling:timetabling@db:5432/timetabling
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # upgrade path for long solver runs: uncomment and move solver execution to Celery
+  # redis:
+  #   image: redis:7-alpine
+
+volumes:
+  pgdata:

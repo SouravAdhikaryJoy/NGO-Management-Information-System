@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manage courses &amp; teachers — University Timetabling System</title>
+  <meta name="description" content="Review course offerings and teacher assignments, and reassign teachers or adjust teacher limits (admin login required to make changes).">
+  <meta name="robots" content="index, follow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=Karla:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗓️</text></svg>">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="stamp">Routine</span>University Timetabling System</a>
+    <nav class="top" aria-label="Main">
+      <a href="/">Workbench</a>
+      <a href="/timetable">Timetable</a>
+      <a href="/manage" aria-current="page">Manage</a>
+      <a href="/#guide">Guide</a>
+      <a href="/docs">API</a>
+    </nav>
+    <div id="auth-badge"></div>
+  </div>
+</header>
+
+<main class="wrap" style="padding-top:36px; padding-bottom:60px">
+  <h1 class="section-title" style="font-size:2rem">Course offerings &amp; teachers</h1>
+  <p class="hint" style="margin-bottom:20px">Everyone can see this list. Reassigning a
+  teacher or changing a workload limit needs an admin login, and any change is
+  checked against the current routine — if it creates a clash, you'll see it
+  immediately and can fix it on the <a href="/timetable">timetable page</a> or
+  by re-running the solver.</p>
+
+  <div id="course-warning"></div>
+
+  <h2 class="section-title" style="font-size:1.3rem">Courses</h2>
+  <div class="manage-table-wrap" style="margin-bottom:32px">
+    <table class="manage" id="courses-table">
+      <thead><tr>
+        <th>Code</th><th>Title</th><th>Dept</th><th>Sem</th><th>Sessions</th>
+        <th>Sections</th><th>Teacher</th><th></th>
+      </tr></thead>
+      <tbody><tr><td colspan="8" class="pill-count">Loading…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div id="teacher-warning"></div>
+
+  <h2 class="section-title" style="font-size:1.3rem">Teachers</h2>
+  <div class="manage-table-wrap">
+    <table class="manage" id="teachers-table">
+      <thead><tr>
+        <th>Code</th><th>Name</th><th>Dept</th><th>Weekly load</th>
+        <th>Max/day</th><th>Max/week</th><th></th>
+      </tr></thead>
+      <tbody><tr><td colspan="7" class="pill-count">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<footer class="colophon">
+  <div class="wrap">
+    <span>University Timetabling System</span>
+    <a href="/">Workbench</a>
+    <a href="/timetable">Timetable</a>
+    <a href="/docs">API documentation</a>
+  </div>
+</footer>
+
+<script src="/static/auth.js"></script>
+<script src="/static/manage.js"></script>
+</body>
+</html>
