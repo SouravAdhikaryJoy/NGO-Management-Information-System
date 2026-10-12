@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>University Timetabling System — automatic clash-free class routines</title>
+  <meta name="description" content="Generate a clash-free weekly university class routine automatically. Upload one Excel workbook, run the two-phase solver, and export the timetable as Excel, CSV, calendar or PDF.">
+  <meta name="keywords" content="university timetabling, class routine generator, course scheduling software, exam-free timetable, academic scheduling, timetable solver">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="University Timetabling System">
+  <meta property="og:description" content="From spreadsheet to clash-free routine: automatic university class scheduling with 14 hard and 19 soft constraints.">
+  <meta property="og:site_name" content="University Timetabling System">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="University Timetabling System">
+  <meta name="twitter:description" content="Automatic clash-free weekly class routines from a single Excel workbook.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=Karla:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗓️</text></svg>">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "University Timetabling System",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "Web",
+    "description": "Automatic generation of clash-free weekly university class routines from a single Excel workbook, with configurable hard and soft scheduling constraints.",
+    "offers": { "@type": "Offer", "price": "0" }
+  }
+  </script>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="stamp">Routine</span>University Timetabling System</a>
+    <nav class="top" aria-label="Main">
+      <a href="/" aria-current="page">Workbench</a>
+      <a href="/timetable">Timetable</a>
+      <a href="/manage">Manage</a>
+      <a href="#guide">Guide</a>
+      <a href="/docs" title="Interactive API documentation">API</a>
+    </nav>
+    <div id="auth-badge"></div>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap" aria-labelledby="hero-title">
+    <p class="kicker">Academic scheduling, solved</p>
+    <h1 id="hero-title">From one spreadsheet to a <em>clash-free routine</em>.</h1>
+    <p class="lede">
+      Describe your rooms, teachers, courses and class groups in a single Excel
+      workbook. The two-phase solver finds a weekly timetable with
+      <strong>zero conflicts</strong> — no double-booked rooms, teachers or
+      groups — then polishes it against 19 quality goals like compact days,
+      lunch breaks and teacher preferences.
+    </p>
+    <div class="cta-row">
+      <button class="btn primary" id="hero-demo">▸ Try it now with demo data</button>
+      <a class="btn" href="#workbench">Open the workbench</a>
+    </div>
+  </section>
+
+  <section class="wrap" id="guide" aria-labelledby="guide-title">
+    <h2 class="section-title" id="guide-title">How it works</h2>
+    <ol class="steps" style="list-style:none">
+      <li class="step reveal"><span class="no">01</span>
+        <h3>Fill the workbook</h3>
+        <p>Download the blank Excel template — one sheet per thing your university has:
+        <code>Rooms</code>, <code>TimeSlots</code>, <code>Teachers</code>,
+        <code>Courses</code>, <code>ClassGroups</code>… Or press
+        <em>Load demo data</em> to explore with a ready-made sample.</p>
+      </li>
+      <li class="step reveal"><span class="no">02</span>
+        <h3>Import &amp; check</h3>
+        <p>Upload the workbook. Every row is validated first — if something is
+        wrong you get the exact sheet, row and field, and nothing is half-saved.
+        Re-uploading an updated file simply updates the records.</p>
+      </li>
+      <li class="step reveal"><span class="no">03</span>
+        <h3>Run the solver</h3>
+        <p>Phase 1 places every class with no clashes at all. Phase 2 then
+        improves quality: fewer idle gaps, sensible lunch breaks, preferred
+        slots honoured. Progress is shown live.</p>
+      </li>
+      <li class="step reveal"><span class="no">04</span>
+        <h3>Review, export, adjust</h3>
+        <p>Browse the routine on the <a href="/timetable">timetable page</a>, download
+        it as Excel, CSV, calendar (.ics) or PDF — or edit the Excel master
+        sheet by hand and re-upload it; edits are checked against every rule.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="wrap" id="workbench" aria-labelledby="bench-title">
+    <h2 class="section-title" id="bench-title">Workbench</h2>
+    <div class="bench">
+
+      <article class="card" aria-labelledby="card-data">
+        <header><span class="tag">Step 1</span><h3 id="card-data">Get data in</h3></header>
+        <div class="body">
+          <p class="hint">Start from the blank template, or load the built-in
+          demo university (10 courses, 8 teachers, 4 class groups).</p>
+          <div class="row">
+            <a class="btn" href="/api/v1/import/template" download>⇩ Blank template</a>
+            <button class="btn" id="btn-demo">Load demo data</button>
+          </div>
+          <div class="row">
+            <input type="file" id="file-input" accept=".xlsx"
+                   aria-label="Excel workbook to import">
+            <button class="btn primary" id="btn-import">Import workbook</button>
+          </div>
+          <div id="import-result" role="status" aria-live="polite"></div>
+          <p class="locked-hint">Importing changes data, so it needs an admin
+          login — you'll be prompted when you press a button above.</p>
+        </div>
+      </article>
+
+      <article class="card" aria-labelledby="card-solve">
+        <header><span class="tag">Step 2</span><h3 id="card-solve">Solve</h3></header>
+        <div class="body">
+          <p class="hint">Runs both phases in the background. A small dataset
+          finishes in well under a minute (budget is configurable).</p>
+          <div class="row">
+            <button class="btn primary" id="btn-solve">▶ Run the solver</button>
+          </div>
+          <div class="status-line" id="solve-status">
+            <span class="dot" id="solve-dot"></span><span id="solve-text">No run started yet.</span>
+          </div>
+          <div id="solve-detail"></div>
+        </div>
+      </article>
+
+      <article class="card" aria-labelledby="card-results">
+        <header><span class="tag">Step 3</span><h3 id="card-results">Results</h3></header>
+        <div class="body">
+          <p class="hint">Once a run completes, view the routine or take it with you.</p>
+          <div class="row">
+            <a class="btn primary" href="/timetable">Open timetable view</a>
+          </div>
+          <div class="row" id="export-row" hidden>
+            <a class="btn quiet" id="exp-xlsx" download>Excel</a>
+            <a class="btn quiet" id="exp-csv" download>CSV</a>
+            <a class="btn quiet" id="exp-ics" download>Calendar</a>
+            <a class="btn quiet" id="exp-pdf" download>PDF</a>
+          </div>
+          <table class="ledger" id="runs-table" hidden>
+            <thead><tr><th>Run</th><th>Status</th><th>Penalty</th><th>Time</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section class="wrap" aria-labelledby="faq-title">
+    <h2 class="section-title" id="faq-title">Good to know</h2>
+    <dl class="glossary">
+      <div>
+        <dt>What is a “hard constraint”?</dt>
+        <dd>A rule that must never break: a room, teacher or class group can’t
+        be in two places at once, rooms must be big enough and of the right
+        type, teachers must be available and qualified. The solver guarantees
+        all 14 of them — the feasibility report in every export shows zero
+        violations.</dd>
+      </div>
+      <div>
+        <dt>What is a “soft constraint”?</dt>
+        <dd>A quality wish with a weight: compact days, no long teaching runs,
+        lunch kept free, difficult courses in the morning. The solver minimises
+        the total weighted penalty, and you can tune every weight under
+        <a href="/docs#/config">Config → weights</a>.</dd>
+      </div>
+      <div>
+        <dt>Can I adjust the result by hand?</dt>
+        <dd>Yes. Export the Excel routine, move any class to another cell of the
+        <em>MasterTimetable</em> sheet (or change the teacher code in the cell),
+        and upload it at <span class="mono">POST /api/v1/import/edits</span>.
+        Each edit is re-checked against every hard rule; invalid edits are
+        rejected individually with the reason.</dd>
+      </div>
+      <div>
+        <dt>Is a run reproducible?</dt>
+        <dd>Every run records its random seed, iteration counts, runtime and a
+        snapshot of all weights and settings — so the same input and seed give
+        the same routine.</dd>
+      </div>
+    </dl>
+  </section>
+</main>
+
+<footer class="colophon">
+  <div class="wrap">
+    <span>University Timetabling System</span>
+    <a href="/docs">API documentation</a>
+    <a href="/timetable">Timetable view</a>
+    <span style="margin-left:auto">Two-phase metaheuristic · 14 hard + 19 soft constraints</span>
+  </div>
+</footer>
+
+<script src="/static/auth.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
